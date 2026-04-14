@@ -3,6 +3,11 @@ let myIframe;   // iframe 元素
 let weekTitle;  // 顯示目前週次的標題元素
 let particles = []; // 背景微光粒子
 let stars = [];     // 星空點點
+let meteors = [];   // 流星陣列
+
+// 打字機效果變數
+let typewriterTarget = "時光記憶圖譜：點選種子查看作品";
+let typewriterCurrent = "";
 
 function setup() {
   // 建立填滿視窗的畫布
@@ -42,7 +47,7 @@ function setup() {
   myIframe.attribute('src', ''); // 預設初始為空
 
   // 建立動態標題文字
-  weekTitle = createElement('h2', '時光記憶圖譜：點選種子查看作品');
+  weekTitle = createElement('h2', '');
   weekTitle.position(width * 0.25, height * 0.02);
   weekTitle.style('color', '#ffffff');
   weekTitle.style('font-family', '標楷體, DFKai-SB, serif');
@@ -50,8 +55,11 @@ function setup() {
   // 2. 初始化週次節點 (Class 實作)
   // 參數：(藤蔓比例位置 0~1, 週次名稱, 檔案路徑, 節點顏色)
   // 0.8 代表底部 (第一週)，0.4 代表靠上方的區域 (第二週)
-  nodes.push(new GrowthNode(0.8, "第一週", "week1/index.html", color(139, 195, 74)));
-  nodes.push(new GrowthNode(0.4, "第二週", "week2/index.html", color(76, 175, 80)));
+  nodes.push(new GrowthNode(0.8, "第一週", "week1/index.html", color(140, 120, 100), color(255, 180, 200))); // 柔粉色
+  nodes.push(new GrowthNode(0.65, "第二週", "week2/index.html", color(130, 110, 90), color(220, 180, 255))); // 薰衣草紫
+  nodes.push(new GrowthNode(0.5, "第三週", "week3/index.html", color(120, 100, 80), color(240, 160, 220))); // 莫蘭迪紫紅
+  nodes.push(new GrowthNode(0.35, "第四週", "week4/index.html", color(110, 90, 70), color(200, 180, 220))); // 灰調淡紫
+  nodes.push(new GrowthNode(0.2, "第五週", "week5/index.html", color(100, 80, 60), color(255, 200, 240))); // 淺瑰粉
 }
 
 function draw() {
@@ -66,46 +74,133 @@ function draw() {
     node.update();
     node.display();
   }
+
+  // 5. 更新打字機標題
+  if (frameCount % 3 === 0 && typewriterCurrent.length < typewriterTarget.length) {
+    typewriterCurrent += typewriterTarget.charAt(typewriterCurrent.length);
+    weekTitle.html(typewriterCurrent);
+  }
 }
 
 function drawBackground() {
+  // 0. 晝夜週期計算 (循環稍微放慢，約 35 秒一週)
+  let cycle = (sin(frameCount * 0.003) + 1) / 2;
+
   // 1. 天空深處漸層
   noStroke();
-  for (let y = 0; y < height; y++) {
-    let inter = map(y, 0, height * 0.8, 0, 1);
-    let c = lerpColor(color(10, 15, 30), color(45, 75, 115), inter);
-    if (y > height * 0.8) {
-      c = lerpColor(color(45, 75, 115), color(20, 15, 10), map(y, height * 0.8, height, 0, 1));
+  let nTop = color(2, 4, 10);
+  let nMid = color(15, 25, 50);
+  let nBot = color(40, 30, 60); // 夜晚地平線帶點紫
+
+  let dTop = color(30, 70, 150);
+  let dMid = color(130, 180, 230);
+  let dBot = color(255, 210, 160); // 白天地平線帶暖橙色
+
+  let cTop = lerpColor(nTop, dTop, cycle);
+  let cMid = lerpColor(nMid, dMid, cycle);
+  let cBottom = lerpColor(nBot, dBot, cycle);
+
+  let skyStep = 8;
+  for (let y = 0; y < height; y += skyStep) {
+    let c;
+    if (y < height * 0.8) {
+      c = lerpColor(cTop, cMid, map(y, 0, height * 0.8, 0, 1));
+    } else {
+      // 地平線處增加額外的空氣輝光
+      let glow = exp(-pow((y - height * 0.8) / 120, 2)) * 60 * cycle;
+      c = lerpColor(cMid, cBottom, map(y, height * 0.8, height, 0, 1));
+      if (cycle > 0.3) c = color(red(c) + glow, green(c) + glow * 0.8, blue(c));
     }
-    stroke(c);
-    line(0, y, width, y);
+    fill(c);
+    rect(0, y, width, skyStep);
   }
 
-  // 2. 視差計算 (根據滑鼠位置)
+  // 2. 繪製太陽與月亮
+  let celestialY = map(cycle, 0, 1, height + 100, height * 0.2);
+  let moonY = map(cycle, 0, 1, height * 0.2, height + 100);
+  
+  // 太陽與光暈
+  if (cycle > 0.1) {
+    for (let r = 100; r > 0; r -= 15) {
+      fill(255, 255, 200, map(r, 0, 100, 40, 0) * cycle);
+      ellipse(width * 0.75, celestialY, r * 2.5);
+    }
+    fill(255, 255, 240, 220 * cycle);
+    ellipse(width * 0.75, celestialY, 60);
+  }
+  
+  // 月亮 (弦月造型)
+  if (cycle < 0.9) {
+    fill(240, 240, 255, 200 * (1 - cycle));
+    ellipse(width * 0.25, moonY, 45);
+    fill(cTop); 
+    ellipse(width * 0.25 + 10, moonY - 5, 40);
+  }
+
+  // 3. 視差計算 (根據滑鼠位置)
   let moveX = map(mouseX, 0, width, -15, 15);
 
-  // 3. 星空層
+  // 4. 星空層
   for (let s of stars) {
-    let blink = noise(s.noiseSeed + frameCount * 0.02) * 255;
+    // 星星在白天 (cycle 靠近 1) 會消失
+    let blink = noise(s.noiseSeed + frameCount * 0.02) * 255 * (1 - cycle);
     fill(255, 255, 200, blink);
     noStroke();
     ellipse(s.x + moveX * 0.2, s.y, s.size);
   }
 
+  // 4.1 雲層流動
+  noStroke();
+  for(let i=0; i<4; i++) {
+    let cx = (frameCount * 0.3 + i * width * 0.4) % (width + 400) - 200;
+    let cy = height * 0.15 + noise(i) * 150;
+    fill(255, (20 + cycle * 40));
+    ellipse(cx, cy, 250, 50);
+  }
+
+  // 3.1 流星效果：隨機生成與繪製
+  if (random(1) < 0.012) { // 約 1.2% 的機率產生流星
+    meteors.push({
+      x: random(width * 0.3, width), // 從右方進場
+      y: random(-100, height * 0.2), // 從上方進場
+      speed: random(12, 25),         // 移動速度
+      len: random(60, 130),          // 尾巴長度
+      alpha: 255                     // 初始亮度
+    });
+  }
+
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    let m = meteors[i];
+    m.x -= m.speed;                // 向左下方滑動
+    m.y += m.speed * 0.5;
+    m.alpha -= 8;                  // 逐漸淡出
+    stroke(255, 255, 255, m.alpha * (1 - cycle)); // 流星在白天也會變透明
+    strokeWeight(2);
+    line(m.x, m.y, m.x + m.len, m.y - m.len * 0.5); // 繪製流星軌跡
+    if (m.alpha <= 0) meteors.splice(i, 1);
+  }
+  noStroke(); // 確保後續繪製不受影響
+
   // 4. 遠山 (第一層)
-  fill(40, 60, 80, 120);
+  let m1Night = color(25, 35, 50, 150);
+  let m1Day = color(85, 110, 145, 180);
+  fill(lerpColor(m1Night, m1Day, cycle));
   drawMountain(moveX * 0.5, height * 0.5, 0.002, 300);
 
   // 5. 霧氣效果 (淡淡的遮罩)
-  fill(100, 130, 150, 50);
+  fill(100, 130, 150, 40 + cycle * 30); // 白天霧氣稍微明顯一點點
   rect(0, height * 0.5, width, height * 0.4);
 
   // 6. 中景山脈 (第二層)
-  fill(30, 45, 35, 200);
+  let m2Night = color(15, 20, 28, 220);
+  let m2Day = color(50, 70, 60, 240);
+  fill(lerpColor(m2Night, m2Day, cycle));
   drawMountain(moveX * 0.8, height * 0.65, 0.005, 200);
 
   // 7. 近景：地表土層
-  fill(25, 18, 10);
+  let gNight = color(12, 10, 8);
+  let gDay = color(45, 35, 25);
+  fill(lerpColor(gNight, gDay, cycle));
   rect(0, height * 0.85, width, height * 0.15);
 
   // 8. 土層邊緣：草叢裝飾
@@ -154,7 +249,7 @@ function drawVine() {
   let vineThickness = [];
   
   // 建立主幹路徑
-  for (let y = height; y > height * 0.1; y -= 5) {
+  for (let y = height; y > height * 0.1; y -= 8) { // 稍微增加間距以提升效能
     // 結合 Noise 與 Sin 產生更有機的波動
     let noiseVal = noise(y * 0.01, frameCount * 0.01);
     let x = width * 0.15 + sin(y * 0.01 + frameCount * 0.02) * 30 + (noiseVal - 0.5) * 50;
@@ -171,20 +266,28 @@ function drawVine() {
     let x2 = vineXPoints[i+1], y2 = vineYPoints[i+1];
     let t = vineThickness[i];
 
-    stroke(20, 10, 5, 80); // 陰影
-    strokeWeight(t + 2);
-    line(x1 + 2, y1, x2 + 2, y2);
+    // 1. 底層深色陰影
+    stroke(20, 15, 10, 80);
+    strokeWeight(t + 10);
+    line(x1 + 3, y1, x2 + 3, y2);
 
-    stroke(93, 64, 55); // 主幹
+    // 2. 外部木質光暈
+    stroke(93, 64, 55, 40); 
+    strokeWeight(t + 15);
+    line(x1, y1, x2, y2);
+
+    // 3. 棕色木質主幹
+    stroke(93, 64, 55); 
     strokeWeight(t);
     line(x1, y1, x2, y2);
 
-    stroke(150, 120, 100, 120); // 亮部
-    strokeWeight(t * 0.3);
+    // 4. 核心高亮線
+    stroke(150, 130, 110, 150); 
+    strokeWeight(t * 0.2);
     line(x1 - 1, y1, x2 - 1, y2);
   }
 
-  // 隨機生長葉子與小側枝
+  // 隨機生長小側枝 (已移除葉子)
   for(let i = 10; i < vineXPoints.length; i += 15) {
     let side = (i % 30 === 0) ? 1 : -1;
     let sc = map(vineYPoints[i], height, height * 0.1, 1.2, 0.5);
@@ -192,8 +295,6 @@ function drawVine() {
     // 側枝機率
     if (noise(i, frameCount * 0.005) > 0.75) {
       drawSmallBranch(vineXPoints[i], vineYPoints[i], side, sc);
-    } else {
-      drawLeaf(vineXPoints[i], vineYPoints[i], side, sc);
     }
   }
 }
@@ -202,48 +303,26 @@ function drawSmallBranch(x, y, side, sc) {
   push();
   translate(x, y);
   rotate(side * PI / 3 + sin(frameCount * 0.02) * 0.1);
-  stroke(93, 64, 55);
+  stroke(93, 64, 55); // 修改側枝為棕色
   strokeWeight(2 * sc);
   let branchLen = 25 * sc;
   line(0, 0, 0, -branchLen);
-  translate(0, -branchLen);
-  drawLeaf(0, 0, 1, sc * 0.8);
-  drawLeaf(0, 0, -1, sc * 0.8);
-  pop();
-}
-
-function drawLeaf(x, y, side, sc = 1.0) {
-  push();
-  translate(x, y);
-  rotate(side * PI / 4 + sin(frameCount * 0.03 + x) * 0.2);
-  scale(sc);
-  
-  // 葉片色彩
-  fill(34, 139, 34, 220);
-  noStroke();
-  // 使用 vertex 繪製較寫實的葉片形狀
-  beginShape();
-  vertex(0, 0);
-  bezierVertex(10 * side, -10, 25 * side, -5, 30 * side, 0);
-  bezierVertex(25 * side, 15, 10 * side, 10, 0, 0);
-  endShape();
-  
-  // 葉脈
-  stroke(0, 50, 0, 100);
-  strokeWeight(0.5);
-  line(0, 0, 25 * side, 0);
   pop();
 }
 
 class GrowthNode {
-  constructor(posRatio, label, url, col) {
+  constructor(posRatio, label, url, col, flowerCol) {
     this.posRatio = posRatio; 
     this.label = label;
     this.url = url;
     this.baseCol = col;
+    this.flowerCol = flowerCol; // 儲存該週專屬的花色
     this.size = 25;
     this.currentSize = 25;
     this.isHovered = false;
+    this.magicParticles = []; // 存儲懸停時產生的魔法粒子
+    this.isBloomed = false;   // 是否處於開花狀態
+    this.bloomScale = 0;      // 花瓣生長的比例 (0~1)
   }
 
   update() {
@@ -256,25 +335,82 @@ class GrowthNode {
     let d = dist(mouseX, mouseY, this.x, this.y);
     if (d < this.size) {
       this.isHovered = true;
+      this.isBloomed = true; // 改為懸停即開花
       this.currentSize = lerp(this.currentSize, 45, 0.2); // 平滑放大
     } else {
       this.isHovered = false;
+      this.isBloomed = false; // 離開即縮回
       this.currentSize = lerp(this.currentSize, 25, 0.1);
+    }
+
+    // 處理花瓣生長動畫
+    this.bloomScale = lerp(this.bloomScale, this.isBloomed ? 1 : 0, 0.1);
+
+    // 更新魔法粒子
+    if (this.isHovered) {
+      // 每幀產生數個新粒子
+      for (let i = 0; i < 3; i++) {
+        this.magicParticles.push({
+          x: 0, y: 0, 
+          vx: random(-2, 2), 
+          vy: random(-2, 2), 
+          life: 255, 
+          size: random(2, 6)
+        });
+      }
+    }
+
+    // 粒子物理更新與銷毀
+    for (let i = this.magicParticles.length - 1; i >= 0; i--) {
+      let p = this.magicParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 6; // 消失速度
+      if (p.life <= 0) this.magicParticles.splice(i, 1);
     }
   }
 
   display() {
     push();
     translate(this.x, this.y);
-    
-    // 當滑鼠移過時，「開花」效果
-    if (this.isHovered) {
-      fill(255, 182, 193, 180); 
-      noStroke();
-      for (let i = 0; i < 6; i++) {
-        rotate(PI/3);
-        ellipse(20, 0, 30, 15);
+
+    // 繪製盛開的花瓣效果
+    if (this.bloomScale > 0.01) {
+      push();
+      // 1. 整體慢速旋轉 (模擬微風)
+      rotate(frameCount * 0.01 + this.posRatio * 10);
+      let petalCount = 10;
+      for (let i = 0; i < petalCount; i++) {
+        push();
+        // 2. 個別花瓣擺動
+        rotate(TWO_PI / petalCount * i + sin(frameCount * 0.05 + i) * 0.1);
+        translate(10 * this.bloomScale, 0); 
+        
+        noStroke();
+        // 3. 修改為圓形花瓣
+        fill(red(this.flowerCol), green(this.flowerCol), blue(this.flowerCol), 180 * this.bloomScale);
+        ellipse(15 * this.bloomScale, 0, 30 * this.bloomScale, 30 * this.bloomScale);
+        
+        // 核心亮點層
+        fill(255, 255, 255, 200 * this.bloomScale);
+        ellipse(15 * this.bloomScale, 0, 12 * this.bloomScale, 12 * this.bloomScale);
+        pop();
       }
+      // 花蕊中央發光點
+      fill(255, 255, 200, 220 * this.bloomScale);
+      ellipse(0, 0, 12 * this.bloomScale);
+      pop();
+    }
+
+    // 繪製魔法粒子散開效果
+    for (let p of this.magicParticles) {
+      noStroke();
+      // 外層青色光暈
+      fill(0, 255, 255, p.life * 0.6);
+      ellipse(p.x, p.y, p.size * 1.5);
+      // 核心白色亮點
+      fill(255, 255, 255, p.life);
+      ellipse(p.x, p.y, p.size * 0.6);
     }
 
     // 繪製主體種子
@@ -296,9 +432,10 @@ class GrowthNode {
   // 點擊判定
   checkClicked() {
     let d = dist(mouseX, mouseY, this.x, this.y);
-    if (d < this.size) {
+    if (d < this.currentSize) { // 使用當前大小，讓放大的節點更容易點擊
       myIframe.attribute('src', this.url);
-      weekTitle.html("正在瀏覽：" + this.label);
+      typewriterTarget = "正在瀏覽：" + this.label;
+      typewriterCurrent = ""; // 重設目前文字，觸發打字機效果
       return true;
     }
     return false;
