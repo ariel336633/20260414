@@ -55,11 +55,12 @@ function setup() {
   // 2. 初始化週次節點 (Class 實作)
   // 參數：(藤蔓比例位置 0~1, 週次名稱, 檔案路徑, 節點顏色)
   // 0.8 代表底部 (第一週)，0.4 代表靠上方的區域 (第二週)
-  nodes.push(new GrowthNode(0.8, "第一週", "week1/index.html", color(140, 120, 100), color(255, 180, 200))); // 柔粉色
-  nodes.push(new GrowthNode(0.65, "第二週", "week2/index.html", color(130, 110, 90), color(220, 180, 255))); // 薰衣草紫
-  nodes.push(new GrowthNode(0.5, "第三週", "week3/index.html", color(120, 100, 80), color(240, 160, 220))); // 莫蘭迪紫紅
-  nodes.push(new GrowthNode(0.35, "第四週", "week4/index.html", color(110, 90, 70), color(200, 180, 220))); // 灰調淡紫
-  nodes.push(new GrowthNode(0.2, "第五週", "week5/index.html", color(100, 80, 60), color(255, 200, 240))); // 淺瑰粉
+  nodes.push(new GrowthNode(0.8, "作品1", "week1/index.html", color(140, 120, 100), color(255, 180, 200))); // 柔粉色
+  nodes.push(new GrowthNode(0.65, "作品2", "week2/index.html", color(130, 110, 90), color(220, 180, 255))); // 薰衣草紫
+  nodes.push(new GrowthNode(0.5, "作品3", "week3/index.html", color(120, 100, 80), color(240, 160, 220))); // 莫蘭迪紫紅
+  nodes.push(new GrowthNode(0.35, "作品4", "week4/index.html", color(110, 90, 70), color(200, 180, 220))); // 灰調淡紫
+  nodes.push(new GrowthNode(0.2, "作品5", "week5/index.html", color(100, 80, 60), color(255, 200, 240))); // 淺瑰粉
+  nodes.push(new GrowthNode(0.05, "作品6", "week6/index.html", color(90, 70, 50), color(180, 255, 220))); // 薄荷綠
 }
 
 function draw() {
